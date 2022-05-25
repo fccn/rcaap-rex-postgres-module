@@ -32,31 +32,31 @@ our @__hba = (
 );
 
 our $__bin_path = { 
-   debian => "/usr/bin",
-   ubuntu => "/usr/bin",
-   centos => "/usr/bin",
-   mageia => "/usr/bin",
+	debian => "/usr/bin",
+	ubuntu => "/usr/bin",
+	centos => "/usr/bin",
+	mageia => "/usr/bin",
 };
 
 our $__service_name = { 
-   debian => "postgresql",
-   ubuntu => "postgresql",
-   centos => "postgresql",
-   mageia => "postgresql",
+	debian => "postgresql",
+	ubuntu => "postgresql",
+	centos => "postgresql",
+	mageia => "postgresql",
 };
 
 our $__package_name = { 
-   debian => "postgresql",
-   ubuntu => "postgresql",
-   centos => "postgresql-server",
-   mageia => "postgresql",
+	debian => "postgresql",
+	ubuntu => "postgresql",
+	centos => "postgresql-server",
+	mageia => "postgresql",
 };
 
 our $__contrib_package_name = { 
-   debian => "postgresql-contrib",
-   ubuntu => "postgresql-contrib",
-   centos => "postgresql-contrib",
-   mageia => "postgresql-contrib", 
+	debian => "postgresql-contrib",
+	ubuntu => "postgresql-contrib",
+	centos => "postgresql-contrib",
+	mageia => "postgresql-contrib", 
 };
 
 
@@ -88,27 +88,16 @@ task 'initialize',
 
 	};
 
-
-task 'start',
-	sub {
-	   my $postgres_service = param_lookup ("service_name", case ( lc(operating_system), $__service_name ));
-	   service $postgres_service => "start";
+my @service_actions = qw( start stop restart );
+foreach my $service_action (@service_actions) {
+	task "$service_action" => sub {
+		my $postgres_service = param_lookup ("service_name", case ( lc(operating_system), $__service_name ));
+		service $postgres_service => "$service_action";
 	};
-
-task 'stop',
-	sub {
-	   my $postgres_service = param_lookup ("service_name", case ( lc(operating_system), $__service_name ));
-	   service $postgres_service => "stop";
-	};
-
-task 'restart',
-	sub {
-	   my $postgres_service = param_lookup ("service_name", case ( lc(operating_system), $__service_name ));
-	   service $postgres_service => "restart";
-	};
+}
 
 sub postgresql_psql {
-    my $postgres_bin_path = param_lookup ("bin_path", case ( lc(operating_system), $__bin_path ));
+	my $postgres_bin_path = param_lookup ("bin_path", case ( lc(operating_system), $__bin_path ));
 	my ($user,$password,$host,$db_stmt,$filename) = @_;
 	return run $postgres_bin_path."/psql -U $user -h $host $db_stmt < $filename",
 				env => {
@@ -138,7 +127,7 @@ sub postgresql_sudo_psql {
 
 sub initialize_service {
 	my $postgres_config = param_lookup ("configuration", $__configuration);
-    my $postgres_bin_path = param_lookup ("bin_path", case ( lc(operating_system), $__bin_path ));
+	my $postgres_bin_path = param_lookup ("bin_path", case ( lc(operating_system), $__bin_path ));
 
 	my $locale = $postgres_config->{locale};
 	my $encoding = $postgres_config->{encoding};
