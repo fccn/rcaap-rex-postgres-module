@@ -174,6 +174,10 @@ sub apply_templates {
 	  content   => template("templates/pg_hba.conf.tpl", hba => $postgres_hba);	
 };
 
+sub isInstalled {
+	return is_installed(param_lookup ("package_name", case ( lc(operating_system()), $__package_name )));
+}
+
 1;
 
 =pod
