@@ -138,6 +138,10 @@ sub initialize_service {
 	
 	# Create a new PostgreSQL database cluster
 	run $postgres_bin_path ."/postgresql-setup initdb",
+		continuous_read => sub {
+			#output to log
+			Rex::Logger::info(@_, "warn");
+		},
 		env => {
 			PGSETUP_INITDB_OPTIONS => "--encoding=$encoding --locale=$locale --pgdata=$data_dir",
 			PGDATA => "$data_dir",
