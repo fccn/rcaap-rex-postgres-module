@@ -28,7 +28,7 @@ task drop => sub {
    
    my $user      = $param->{name};
 
-  Rex::Module::Database::Postgres::Admin::execute({sql => "DROP USER $user;"});
+   Rex::Module::Database::Postgres::Admin::execute({sql => "DROP USER IF EXISTS $user;"});
 
 };
 
@@ -41,7 +41,7 @@ task drop_role => sub {
 
    my $user      = $param->{user};
 
-  Rex::Module::Database::Postgres::Admin::execute({sql => "DROP ROLE $user;"});
+   Rex::Module::Database::Postgres::Admin::execute({sql => "DROP ROLE IF EXISTS $user;"});
 
 };
 
@@ -56,7 +56,7 @@ task add_role => sub {
    my $role      = $param->{role};
 
 
-  Rex::Module::Database::Postgres::Admin::execute({sql => "ALTER ROLE $user $role"});
+   Rex::Module::Database::Postgres::Admin::execute({sql => "ALTER ROLE $user $role"});
 
 };
 
