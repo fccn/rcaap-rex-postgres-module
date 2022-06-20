@@ -126,6 +126,18 @@ sub postgresql_sudo_psql {
 };
 
 sub initialize_service {
+	my $method = 'initialize_service_'.lc(get_operating_system());
+		&{ \&$method }();
+}
+
+sub initialize_service_debian {
+}
+
+sub initialize_service_ubuntu {
+	initialize_service_debian();
+}
+
+sub initialize_service_centos {
 	my $postgres_config = param_lookup ("configuration", $__configuration);
 	my $postgres_bin_path = param_lookup ("bin_path", case ( lc(operating_system), $__bin_path ));
 
