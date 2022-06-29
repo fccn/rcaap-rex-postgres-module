@@ -8,6 +8,7 @@ use Data::Dumper;
 our $__configuration = { 
 	user => 'postgres',
 	data_dir => '/var/lib/pgsql/data',
+	conf_dir => '/var/lib/pgsql/data',
 	log_dir => '/var/log/postgresql',
 	locale => 'en_US.UTF8',
 	encoding => 'UTF8',
@@ -131,6 +132,30 @@ sub initialize_service {
 }
 
 sub initialize_service_debian {
+	my $postgres_config = param_lookup ("configuration", $__configuration);
+	my $postgres_bin_path = param_lookup ("bin_path", case ( lc(operating_system), $__bin_path ));
+
+	my $locale = $postgres_config->{locale};
+	my $encoding = $postgres_config->{encoding};
+	my $user = $postgres_config->{user};	
+	my $data_dir =  $postgres_config->{data_dir};	
+	my $log_dir = $postgres_config->{log_dir};
+	my $os = get_operating_system();
+	
+	file $data_dir, ensure => "directory",
+		owner  => $user;
+
+	# Create a new PostgreSQL database cluster
+	sudo { 
+		command => $postgres_bin_path ."/initdb --encoding=$encoding --locale=$locale --pgdata=$data_dir",
+		user => $user,
+		continuous_read => sub {
+			#output to log
+			Rex::Logger::info(@_, "warn");
+		},
+	};
+
+	die("Error on 'initdb' command.") unless ($? == 0); 
 }
 
 sub initialize_service_ubuntu {
@@ -147,6 +172,9 @@ sub initialize_service_centos {
 	my $data_dir =  $postgres_config->{data_dir};	
 	my $log_dir = $postgres_config->{log_dir};
 	my $os = get_operating_system();
+	
+	file $data_dir, ensure => "directory",
+		owner  => $user;
 	
 	# Create a new PostgreSQL database cluster
 	run $postgres_bin_path ."/postgresql-setup initdb",
@@ -170,8 +198,9 @@ sub initialize_folders {
 	my $log_dir = $postgres_config->{log_dir};
 	# mv data dir to tmp dir
 	if (is_dir($data_dir)) {
-		file $data_dir."_old", ensure => "absent";
-		mv ($data_dir, $data_dir."_old");
+		#file $data_dir."_old", ensure => "absent";
+		#mv ($data_dir, $data_dir."_old");
+		Rex::Logger::info("DATA dir already exists", "warn");
 	}
 	
 	file $log_dir, ensure => "directory",
@@ -182,11 +211,11 @@ sub initialize_folders {
 sub apply_templates {
 	my $postgres_config = param_lookup ("configuration", $__configuration);
 	my $postgres_hba = param_lookup ("hba", \@__hba);
-	my $data_dir =  $postgres_config->{data_dir};
-	file "$data_dir/postgresql.conf",
+	my $conf_dir =  $postgres_config->{conf_dir};
+	file "$conf_dir/postgresql.conf",
 	  content   => template("templates/postgresql.conf.tpl");
 	  
-	file "$data_dir/pg_hba.conf",
+	file "$conf_dir/pg_hba.conf",
 	  content   => template("templates/pg_hba.conf.tpl", hba => $postgres_hba);	
 };
 
