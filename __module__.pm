@@ -120,15 +120,26 @@ sub postgresql_sudo_psql {
 	my $user = $postgres_config->{user};
 	
 	sudo { 
-		command => $postgres_bin_path."/psql $db_stmt -c \"$sql_query\"", 
+		command =>  => sub {
+			run "$postgres_bin_path/psql $db_stmt -c \"$sql_query\"", 
+		},
 		user => $user,
+		continuous_read => sub {
+			#output to log
+			Rex::Logger::info(@_, "warn");
+		},
 	};
 	die("Error on psql -c $sql_query") unless ($? == 0); 
 };
 
 sub initialize_service {
+	my $postgres_config = param_lookup ("configuration", $__configuration);
+	my $data_dir =  $postgres_config->{data_dir};
+
 	my $method = 'initialize_service_'.lc(get_operating_system());
 		&{ \&$method }();
+	
+	die("Data dir not present, initialization failed") unless (is_dir($data_dir)); 
 }
 
 sub initialize_service_debian {
@@ -142,19 +153,19 @@ sub initialize_service_debian {
 	my $log_dir = $postgres_config->{log_dir};
 	my $os = get_operating_system();
 	
-	file $data_dir, ensure => "directory",
-		owner  => $user;
-
-	# Create a new PostgreSQL database cluster
-	sudo { 
-		command => $postgres_bin_path ."/initdb --encoding=$encoding --locale=$locale --pgdata=$data_dir",
-		user => $user,
-		continuous_read => sub {
-			#output to log
-			Rex::Logger::info(@_, "warn");
-		},
-	};
-
+	if (!is_dir($data_dir)) {
+		# Create a new PostgreSQL database cluster
+		sudo { 
+			command => sub {
+				say run "$postgres_bin_path/initdb --encoding=$encoding --locale=$locale --pgdata=$data_dir";
+			},
+			user => $user,
+			continuous_read => sub {
+				#output to log
+				Rex::Logger::info(@_, "warn");
+			},
+		};
+	}
 	die("Error on 'initdb' command.") unless ($? == 0); 
 }
 
@@ -173,21 +184,20 @@ sub initialize_service_centos {
 	my $log_dir = $postgres_config->{log_dir};
 	my $os = get_operating_system();
 	
-	file $data_dir, ensure => "directory",
-		owner  => $user;
-	
-	# Create a new PostgreSQL database cluster
-	run $postgres_bin_path ."/postgresql-setup initdb",
-		continuous_read => sub {
-			#output to log
-			Rex::Logger::info(@_, "warn");
-		},
-		env => {
-			PGSETUP_INITDB_OPTIONS => "--encoding=$encoding --locale=$locale --pgdata=$data_dir",
-			PGDATA => "$data_dir",
-		};
-	die("Error on 'postgresql-setup initdb' command.") unless ($? == 0); 
-	
+	if (!is_dir($data_dir)) {
+		
+		# Create a new PostgreSQL database cluster
+		run $postgres_bin_path ."/postgresql-setup initdb",
+			continuous_read => sub {
+				#output to log
+				Rex::Logger::info(@_, "warn");
+			},
+			env => {
+				PGSETUP_INITDB_OPTIONS => "--encoding=$encoding --locale=$locale --pgdata=$data_dir",
+				PGDATA => "$data_dir",
+			};
+	}
+	die("Error on 'postgresql-setup initdb' command.") unless ($? == 0);
 };
 
 
