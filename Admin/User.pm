@@ -15,8 +15,9 @@ task create => sub {
    my $user     = $param->{user};
    my $password = $param->{password};
    my $role = $param->{role} || "";
+   my $password_stmt = (defined ($param->{encrypted_password}) && $param->{encrypted_password} eq 'true') ? "ENCRYPTED PASSWORD '$password'" : "PASSWORD '$password'";
 
-   Rex::Module::Database::Postgres::Admin::execute({sql => "CREATE USER $user WITH $role PASSWORD '$password' ;\n"});
+   Rex::Module::Database::Postgres::Admin::execute({sql => "CREATE USER $user WITH $role $password_stmt ;\n"});
 
 };
 
