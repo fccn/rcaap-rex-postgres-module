@@ -16,7 +16,7 @@ task create => sub {
    my $encoding = $param->{encoding} || "UTF8";
    my $template = $param->{template} || "template0";
       
-   Rex::Module::Database::Postgres::Admin::execute({sql => "CREATE DATABASE $db ENCODING '$encoding' TEMPLATE $template;\n"});
+   Rex::Module::Database::Postgres::Admin::execute({sql => "SELECT 'CREATE DATABASE $db ENCODING $encoding TEMPLATE $template' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '$db')\\gexec"});
 
 };
 

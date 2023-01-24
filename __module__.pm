@@ -8,6 +8,7 @@ use Data::Dumper;
 our $__configuration = { 
 	user => 'postgres',
 	data_dir => '/var/lib/pgsql/data',
+	conf_dir => '/var/lib/pgsql/data',
 	log_dir => '/var/log/postgresql',
 	locale => 'en_US.UTF8',
 	encoding => 'UTF8',
@@ -32,31 +33,31 @@ our @__hba = (
 );
 
 our $__bin_path = { 
-   debian => "/usr/bin",
-   ubuntu => "/usr/bin",
-   centos => "/usr/bin",
-   mageia => "/usr/bin",
+	debian => "/usr/bin",
+	ubuntu => "/usr/bin",
+	centos => "/usr/bin",
+	mageia => "/usr/bin",
 };
 
 our $__service_name = { 
-   debian => "postgresql",
-   ubuntu => "postgresql",
-   centos => "postgresql",
-   mageia => "postgresql",
+	debian => "postgresql",
+	ubuntu => "postgresql",
+	centos => "postgresql",
+	mageia => "postgresql",
 };
 
 our $__package_name = { 
-   debian => "postgresql",
-   ubuntu => "postgresql",
-   centos => "postgresql-server",
-   mageia => "postgresql",
+	debian => "postgresql",
+	ubuntu => "postgresql",
+	centos => "postgresql-server",
+	mageia => "postgresql",
 };
 
 our $__contrib_package_name = { 
-   debian => "postgresql-contrib",
-   ubuntu => "postgresql-contrib",
-   centos => "postgresql-contrib",
-   mageia => "postgresql-contrib", 
+	debian => "postgresql-contrib",
+	ubuntu => "postgresql-contrib",
+	centos => "postgresql-contrib",
+	mageia => "postgresql-contrib", 
 };
 
 
@@ -88,27 +89,16 @@ task 'initialize',
 
 	};
 
-
-task 'start',
-	sub {
-	   my $postgres_service = param_lookup ("service_name", case ( lc(operating_system), $__service_name ));
-	   service $postgres_service => "start";
+my @service_actions = qw( start stop restart );
+foreach my $service_action (@service_actions) {
+	task "$service_action" => sub {
+		my $postgres_service = param_lookup ("service_name", case ( lc(operating_system), $__service_name ));
+		service $postgres_service => "$service_action";
 	};
-
-task 'stop',
-	sub {
-	   my $postgres_service = param_lookup ("service_name", case ( lc(operating_system), $__service_name ));
-	   service $postgres_service => "stop";
-	};
-
-task 'restart',
-	sub {
-	   my $postgres_service = param_lookup ("service_name", case ( lc(operating_system), $__service_name ));
-	   service $postgres_service => "restart";
-	};
+}
 
 sub postgresql_psql {
-    my $postgres_bin_path = param_lookup ("bin_path", case ( lc(operating_system), $__bin_path ));
+	my $postgres_bin_path = param_lookup ("bin_path", case ( lc(operating_system), $__bin_path ));
 	my ($user,$password,$host,$db_stmt,$filename) = @_;
 	return run $postgres_bin_path."/psql -U $user -h $host $db_stmt < $filename",
 				env => {
@@ -130,15 +120,31 @@ sub postgresql_sudo_psql {
 	my $user = $postgres_config->{user};
 	
 	sudo { 
-		command => $postgres_bin_path."/psql $db_stmt -c \"$sql_query\"", 
+		command =>  => sub {
+			run "$postgres_bin_path/psql $db_stmt -c \"$sql_query\"", 
+		},
 		user => $user,
+		continuous_read => sub {
+			#output to log
+			Rex::Logger::info(@_, "warn");
+		},
 	};
 	die("Error on psql -c $sql_query") unless ($? == 0); 
 };
 
 sub initialize_service {
 	my $postgres_config = param_lookup ("configuration", $__configuration);
-    my $postgres_bin_path = param_lookup ("bin_path", case ( lc(operating_system), $__bin_path ));
+	my $data_dir =  $postgres_config->{data_dir};
+
+	my $method = 'initialize_service_'.lc(get_operating_system());
+		&{ \&$method }();
+	
+	die("Data dir not present, initialization failed") unless (is_dir($data_dir)); 
+}
+
+sub initialize_service_debian {
+	my $postgres_config = param_lookup ("configuration", $__configuration);
+	my $postgres_bin_path = param_lookup ("bin_path", case ( lc(operating_system), $__bin_path ));
 
 	my $locale = $postgres_config->{locale};
 	my $encoding = $postgres_config->{encoding};
@@ -147,14 +153,51 @@ sub initialize_service {
 	my $log_dir = $postgres_config->{log_dir};
 	my $os = get_operating_system();
 	
-	# Create a new PostgreSQL database cluster
-	run $postgres_bin_path ."/postgresql-setup initdb",
-		env => {
-			PGSETUP_INITDB_OPTIONS => "--encoding=$encoding --locale=$locale --pgdata=$data_dir",
-			PGDATA => "$data_dir",
+	if (!is_dir($data_dir)) {
+		# Create a new PostgreSQL database cluster
+		sudo { 
+			command => sub {
+				say run "$postgres_bin_path/initdb --encoding=$encoding --locale=$locale --pgdata=$data_dir";
+			},
+			user => $user,
+			continuous_read => sub {
+				#output to log
+				Rex::Logger::info(@_, "warn");
+			},
 		};
-	die("Error on 'postgresql-setup initdb' command.") unless ($? == 0); 
+	}
+	die("Error on 'initdb' command.") unless ($? == 0); 
+}
+
+sub initialize_service_ubuntu {
+	initialize_service_debian();
+}
+
+sub initialize_service_centos {
+	my $postgres_config = param_lookup ("configuration", $__configuration);
+	my $postgres_bin_path = param_lookup ("bin_path", case ( lc(operating_system), $__bin_path ));
+
+	my $locale = $postgres_config->{locale};
+	my $encoding = $postgres_config->{encoding};
+	my $user = $postgres_config->{user};	
+	my $data_dir =  $postgres_config->{data_dir};	
+	my $log_dir = $postgres_config->{log_dir};
+	my $os = get_operating_system();
 	
+	if (!is_dir($data_dir)) {
+		
+		# Create a new PostgreSQL database cluster
+		run $postgres_bin_path ."/postgresql-setup initdb",
+			continuous_read => sub {
+				#output to log
+				Rex::Logger::info(@_, "warn");
+			},
+			env => {
+				PGSETUP_INITDB_OPTIONS => "--encoding=$encoding --locale=$locale --pgdata=$data_dir",
+				PGDATA => "$data_dir",
+			};
+	}
+	die("Error on 'postgresql-setup initdb' command.") unless ($? == 0);
 };
 
 
@@ -165,8 +208,9 @@ sub initialize_folders {
 	my $log_dir = $postgres_config->{log_dir};
 	# mv data dir to tmp dir
 	if (is_dir($data_dir)) {
-		file $data_dir."_old", ensure => "absent";
-		mv ($data_dir, $data_dir."_old");
+		#file $data_dir."_old", ensure => "absent";
+		#mv ($data_dir, $data_dir."_old");
+		Rex::Logger::info("DATA dir already exists", "warn");
 	}
 	
 	file $log_dir, ensure => "directory",
@@ -177,13 +221,17 @@ sub initialize_folders {
 sub apply_templates {
 	my $postgres_config = param_lookup ("configuration", $__configuration);
 	my $postgres_hba = param_lookup ("hba", \@__hba);
-	my $data_dir =  $postgres_config->{data_dir};
-	file "$data_dir/postgresql.conf",
+	my $conf_dir =  $postgres_config->{conf_dir};
+	file "$conf_dir/postgresql.conf",
 	  content   => template("templates/postgresql.conf.tpl");
 	  
-	file "$data_dir/pg_hba.conf",
+	file "$conf_dir/pg_hba.conf",
 	  content   => template("templates/pg_hba.conf.tpl", hba => $postgres_hba);	
 };
+
+sub isInstalled {
+	return is_installed(param_lookup ("package_name", case ( lc(operating_system()), $__package_name )));
+}
 
 1;
 
