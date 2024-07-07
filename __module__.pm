@@ -78,7 +78,7 @@ task 'initialize',
 		my $postgres_service = param_lookup ("service_name", case ( lc(operating_system), $__service_name ));
 		initialize_folders ();
 		initialize_service ();
-		apply_templates();
+		initialize_configs();
 		
 		#if ($changed) {
 		#	restart();	
@@ -111,7 +111,7 @@ sub postgresql_psql {
 # @db_stmt is a string with the name of the database
 sub postgresql_sudo_psql {
 	my $postgres_config = param_lookup ("configuration", $__configuration);
-    my $postgres_bin_path = param_lookup ("bin_path", case ( lc(operating_system), $__bin_path ));
+	my $postgres_bin_path = param_lookup ("bin_path", case ( lc(operating_system), $__bin_path ));
 
 	my $os = get_operating_system();
 	my $sql_query = shift;
@@ -212,21 +212,28 @@ sub initialize_folders {
 		#mv ($data_dir, $data_dir."_old");
 		Rex::Logger::info("DATA dir already exists", "warn");
 	}
-	
+
 	file $log_dir, ensure => "directory",
 		owner  => $user;
-	
+
 };
 
-sub apply_templates {
+sub initialize_configs {
 	my $postgres_config = param_lookup ("configuration", $__configuration);
+	my $user = $postgres_config->{user};
 	my $postgres_hba = param_lookup ("hba", \@__hba);
 	my $conf_dir =  $postgres_config->{conf_dir};
+
+	# if config dir doesn't exist, create one
+	if (!is_dir($conf_dir)) {
+		file $conf_dir, ensure => "directory",
+			owner  => $user;
+	}
 	file "$conf_dir/postgresql.conf",
-	  content   => template("templates/postgresql.conf.tpl");
-	  
+		content   => template("templates/postgresql.conf.tpl");
+
 	file "$conf_dir/pg_hba.conf",
-	  content   => template("templates/pg_hba.conf.tpl", hba => $postgres_hba);	
+		content   => template("templates/pg_hba.conf.tpl", hba => $postgres_hba);
 };
 
 sub isInstalled {
