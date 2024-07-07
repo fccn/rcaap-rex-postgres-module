@@ -7,11 +7,14 @@ use Data::Dumper;
 
 our $__configuration = { 
 	user => 'postgres',
+	home_dir => '/var/lib/pgsql',
 	data_dir => '/var/lib/pgsql/data',
 	conf_dir => '/var/lib/pgsql/data',
 	log_dir => '/var/log/postgresql',
 	locale => 'en_US.UTF8',
 	encoding => 'UTF8',
+	owner => 'postgres',
+	group => 'postgres',
 	#authmethod => 'md5',
 };
 
@@ -30,6 +33,11 @@ our @__hba = (
 		address => '::1/128',
 		method => 'md5'
 	}	
+);
+
+our @__settings = (
+	{ listen_addresses => "'*'" },
+	{ dynamic_shared_memory_type => 'posix' },
 );
 
 our $__bin_path = { 
@@ -110,7 +118,7 @@ sub postgresql_psql {
 # @sql_query is a string with the SQL query to execute
 # @db_stmt is a string with the name of the database
 sub postgresql_sudo_psql {
-	my $postgres_config = param_lookup ("configuration", $__configuration);
+	my $postgres_config = getConfiguration();
 	my $postgres_bin_path = param_lookup ("bin_path", case ( lc(operating_system), $__bin_path ));
 
 	my $os = get_operating_system();
@@ -133,7 +141,7 @@ sub postgresql_sudo_psql {
 };
 
 sub initialize_service {
-	my $postgres_config = param_lookup ("configuration", $__configuration);
+	my $postgres_config = getConfiguration();
 	my $data_dir =  $postgres_config->{data_dir};
 
 	my $method = 'initialize_service_'.lc(get_operating_system());
@@ -143,7 +151,7 @@ sub initialize_service {
 }
 
 sub initialize_service_debian {
-	my $postgres_config = param_lookup ("configuration", $__configuration);
+	my $postgres_config = getConfiguration();
 	my $postgres_bin_path = param_lookup ("bin_path", case ( lc(operating_system), $__bin_path ));
 
 	my $locale = $postgres_config->{locale};
@@ -174,7 +182,7 @@ sub initialize_service_ubuntu {
 }
 
 sub initialize_service_centos {
-	my $postgres_config = param_lookup ("configuration", $__configuration);
+	my $postgres_config = getConfiguration();
 	my $postgres_bin_path = param_lookup ("bin_path", case ( lc(operating_system), $__bin_path ));
 
 	my $locale = $postgres_config->{locale};
@@ -202,7 +210,7 @@ sub initialize_service_centos {
 
 
 sub initialize_folders {
-	my $postgres_config = param_lookup ("configuration", $__configuration);
+	my $postgres_config = getConfiguration();
 	my $user = $postgres_config->{user};	
 	my $data_dir =  $postgres_config->{data_dir};	
 	my $log_dir = $postgres_config->{log_dir};
@@ -219,18 +227,19 @@ sub initialize_folders {
 };
 
 sub initialize_configs {
-	my $postgres_config = param_lookup ("configuration", $__configuration);
+	my $postgres_config = getConfiguration();
 	my $user = $postgres_config->{user};
 	my $postgres_hba = param_lookup ("hba", \@__hba);
+	my $postgres_settings = param_lookup ("settings", \@__settings);
 	my $conf_dir =  $postgres_config->{conf_dir};
 
 	# if config dir doesn't exist, create one
 	if (!is_dir($conf_dir)) {
-		file $conf_dir, ensure => "directory",
-			owner  => $user;
+		file $conf_dir, ensure => "directory";
 	}
+
 	file "$conf_dir/postgresql.conf",
-		content   => template("templates/postgresql.conf.tpl");
+		content   => template("templates/postgresql.conf.tpl", settings => $postgres_settings);
 
 	file "$conf_dir/pg_hba.conf",
 		content   => template("templates/pg_hba.conf.tpl", hba => $postgres_hba);
@@ -238,6 +247,10 @@ sub initialize_configs {
 
 sub isInstalled {
 	return is_installed(param_lookup ("package_name", case ( lc(operating_system()), $__package_name )));
+}
+
+sub getConfiguration {
+	return param_lookup ("configuration", $__configuration);
 }
 
 1;

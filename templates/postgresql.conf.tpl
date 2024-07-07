@@ -57,14 +57,14 @@
 # - Connection Settings -
 
 #listen_addresses = 'localhost'		# what IP address(es) to listen on;
-listen_addresses = '*'		# what IP address(es) to listen on;
+#listen_addresses = '*'		# what IP address(es) to listen on;
 					# comma-separated list of addresses;
 					# defaults to 'localhost'; use '*' for all
 					# (change requires restart)
 #port = 5432				# (change requires restart)
 # Note: In RHEL/Fedora installations, you can't set the port number here;
 # adjust it in the service file instead.
-max_connections = 100			# (change requires restart)
+#max_connections = 100			# (change requires restart)
 #superuser_reserved_connections = 3	# (change requires restart)
 #unix_socket_directories = '/var/run/postgresql, /tmp'	# comma-separated list of directories
 					# (change requires restart)
@@ -113,7 +113,7 @@ max_connections = 100			# (change requires restart)
 
 # - Memory -
 
-shared_buffers = 128MB			# min 128kB
+#shared_buffers = 128MB			# min 128kB
 					# (change requires restart)
 #huge_pages = try			# on, off, or try
 					# (change requires restart)
@@ -126,7 +126,7 @@ shared_buffers = 128MB			# min 128kB
 #maintenance_work_mem = 64MB		# min 1MB
 #autovacuum_work_mem = -1		# min 1MB, or -1 to use maintenance_work_mem
 #max_stack_depth = 2MB			# min 100kB
-dynamic_shared_memory_type = posix	# the default is the first option
+#dynamic_shared_memory_type = posix	# the default is the first option
 					# supported by the operating system:
 					#   posix
 					#   sysv
@@ -324,20 +324,20 @@ dynamic_shared_memory_type = posix	# the default is the first option
 					# requires logging_collector to be on.
 
 # This is used when logging to stderr:
-logging_collector = on			# Enable capturing of stderr and csvlog
+#logging_collector = on			# Enable capturing of stderr and csvlog
 					# into log files. Required to be on for
 					# csvlogs.
 					# (change requires restart)
 
 # These are only used if logging_collector is on:
 #log_directory = 'pg_log'		# directory where log files are written,
-log_directory = '/var/log/postgresql'
+#log_directory = '/var/log/postgresql'
 					# can be absolute or relative to PGDATA
-log_filename = 'postgresql-%a.log'	# log file name pattern,
+#log_filename = 'postgresql-%a.log'	# log file name pattern,
 					# can include strftime() escapes
 #log_file_mode = 0600			# creation mode for log files,
 					# begin with 0 to use octal notation
-log_truncate_on_rotation = on		# If on, an existing log file with the
+#log_truncate_on_rotation = on		# If on, an existing log file with the
 					# same name as the new log file will be
 					# truncated rather than appended to.
 					# But such truncation only occurs on
@@ -345,9 +345,9 @@ log_truncate_on_rotation = on		# If on, an existing log file with the
 					# or size-driven rotation.  Default is
 					# off, meaning append to existing files
 					# in all cases.
-log_rotation_age = 1d			# Automatic rotation of logfiles will
+#log_rotation_age = 1d			# Automatic rotation of logfiles will
 					# happen after that time.  0 disables.
-log_rotation_size = 0			# Automatic rotation of logfiles will
+#log_rotation_size = 0			# Automatic rotation of logfiles will
 					# happen after that much log output.
 					# 0 disables.
 
@@ -419,7 +419,7 @@ log_rotation_size = 0			# Automatic rotation of logfiles will
 #log_error_verbosity = default		# terse, default, or verbose messages
 #log_hostname = off
 #log_line_prefix = ''			# special values:
-log_line_prefix = '%m - '			# special values:
+#log_line_prefix = '%m - '			# special values:
 					#   %a = application name
 					#   %u = user name
 					#   %d = database name
@@ -445,7 +445,7 @@ log_line_prefix = '%m - '			# special values:
 #log_temp_files = -1			# log temporary files equal or larger
 					# than the specified size in kilobytes;
 					# -1 disables, 0 logs all temp files
-log_timezone = 'Portugal'
+#log_timezone = 'Portugal'
 
 
 # - Process Title -
@@ -538,9 +538,9 @@ log_timezone = 'Portugal'
 
 # - Locale and Formatting -
 
-datestyle = 'iso, dmy'
+#datestyle = 'iso, dmy'
 #intervalstyle = 'postgres'
-timezone = 'Portugal'
+#timezone = 'Portugal'
 #timezone_abbreviations = 'Default'     # Select the set of available time zone
 					# abbreviations.  Currently, there are
 					#   Default
@@ -553,14 +553,14 @@ timezone = 'Portugal'
 					# encoding
 
 # These settings are initialized by initdb, but they can be changed.
-lc_messages = 'pt_PT.UTF8'			# locale for system error message
+#lc_messages = 'pt_PT.UTF8'			# locale for system error message
 					# strings
-lc_monetary = 'pt_PT.UTF8'			# locale for monetary formatting
-lc_numeric = 'pt_PT.UTF8'			# locale for number formatting
-lc_time = 'pt_PT.UTF8'				# locale for time formatting
+#lc_monetary = 'pt_PT.UTF8'			# locale for monetary formatting
+#lc_numeric = 'pt_PT.UTF8'			# locale for number formatting
+#lc_time = 'pt_PT.UTF8'				# locale for time formatting
 
 # default configuration for text search
-default_text_search_config = 'pg_catalog.portuguese'
+#default_text_search_config = 'pg_catalog.portuguese'
 
 # - Other Defaults -
 
@@ -628,3 +628,5 @@ default_text_search_config = 'pg_catalog.portuguese'
 #------------------------------------------------------------------------------
 
 # Add settings for extensions here
+<% foreach my $setting (@{$settings}){ %>
+<%= keys %$setting %> = <%= values %$setting %><% } %>
