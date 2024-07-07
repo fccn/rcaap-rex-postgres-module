@@ -1,3 +1,5 @@
+# REX template based file - please check rex Postgres module - https://github.com/fccn/rcaap-rex-postgresql-module
+#
 # -----------------------------
 # PostgreSQL configuration file
 # -----------------------------
