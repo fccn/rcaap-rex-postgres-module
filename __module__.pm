@@ -211,7 +211,8 @@ sub initialize_service_centos {
 
 sub initialize_folders {
 	my $postgres_config = getConfiguration();
-	my $user = $postgres_config->{user};	
+	my $owner = $postgres_config->{owner};	
+	my $group = $postgres_config->{group};	
 	my $data_dir =  $postgres_config->{data_dir};	
 	my $log_dir = $postgres_config->{log_dir};
 	# mv data dir to tmp dir
@@ -219,10 +220,16 @@ sub initialize_folders {
 		#file $data_dir."_old", ensure => "absent";
 		#mv ($data_dir, $data_dir."_old");
 		Rex::Logger::info("DATA dir already exists", "warn");
+	} else {
+		#TODO: TO TEST - NOT SURE WHAT's THE IMPACT on Postgres setup
+		file $data_dir, ensure => "directory",
+			owner  => $owner,
+			group  => $group;
 	}
 
 	file $log_dir, ensure => "directory",
-		owner  => $user;
+		owner  => $owner,
+		group  => $group;
 
 };
 
