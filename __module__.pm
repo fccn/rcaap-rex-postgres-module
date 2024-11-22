@@ -245,6 +245,21 @@ sub initialize_configs {
 		file $conf_dir, ensure => "directory";
 	}
 
+	# ensure we don't have repeated settings, remove existing
+	my %existing_keys;
+	my @filtered_settings;
+
+	foreach my $setting (@{$postgres_settings}) {
+		foreach my $key (keys %$setting) {
+		unless ($existing_keys{$key}) {
+				$existing_keys{$key} = 1;
+				push @filtered_settings, { $key => $setting->{$key} };
+			}
+		}
+	}
+
+	$postgres_settings = \@filtered_settings;
+
 	file "$conf_dir/postgresql.conf",
 		content   => template("templates/postgresql.conf.tpl", settings => $postgres_settings);
 
